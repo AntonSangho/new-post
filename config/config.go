@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -10,9 +11,7 @@ import (
 type Config struct {
 	TelegramBotToken string
 	TelegramChatID   int64
-	TargetURL        string
-	CheckInterval    string
-	DataFile         string
+	TargetURLs       []string
 }
 
 func Load() (*Config, error) {
@@ -23,20 +22,24 @@ func Load() (*Config, error) {
 		chatID = 0
 	}
 
+	// TARGET_URL을 콤마로 분리하여 배열로 변환
+	urlsStr := os.Getenv("TARGET_URL")
+	var targetURLs []string
+	if urlsStr != "" {
+		urls := strings.Split(urlsStr, ",")
+		for _, url := range urls {
+			url = strings.TrimSpace(url)
+			if url != "" {
+				targetURLs = append(targetURLs, url)
+			}
+		}
+	}
+
 	config := &Config{
 		TelegramBotToken: os.Getenv("TELEGRAM_BOT_TOKEN"),
 		TelegramChatID:   chatID,
-		TargetURL:        os.Getenv("TARGET_URL"),
-		CheckInterval:    getEnvWithDefault("CHECK_INTERVAL", "*/5 * * * *"),
-		DataFile:         getEnvWithDefault("DATA_FILE", "data.json"),
+		TargetURLs:       targetURLs,
 	}
 
 	return config, nil
-}
-
-func getEnvWithDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }
