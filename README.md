@@ -1,13 +1,15 @@
-# Go NewPost Monitor
+# 서울시 주택공고 모니터링 봇
 
-특정 홈페이지 게시판의 새 글을 모니터링하고 텔레그램으로 알림을 전송하는 Go 애플리케이션입니다.
+서울시 LH 및 SH 주택공고를 자동으로 모니터링하고 텔레그램으로 알림을 전송하는 Go 애플리케이션입니다.
 
 ## 기능
 
-- 🔍 웹사이트 게시판 자동 모니터링
-- 📨 새 글 발견 시 텔레그램 알림
-- ⏰ GitHub Actions를 통한 주기적 실행
-- 💾 중복 알림 방지를 위한 데이터 저장
+- 🏠 **서울시 주택공고 전용**: LH, SH 주택공고 사이트 특화 스크래핑
+- 📊 **요약 알림**: 최근 7일간 모든 공고를 요약하여 전송 
+- 🔗 **다중 사이트 지원**: LH와 SH 사이트 동시 모니터링
+- 📨 **텔레그램 알림**: 공고 제목, 게시일, URL 포함한 상세 정보 전송
+- ⏰ **GitHub Actions 자동화**: 매일 정해진 시간에 자동 실행
+- 🚀 **상태 비저장**: 매 실행마다 최신 정보만 확인하는 단순한 구조
 
 ## GitHub Actions 설정 (권장)
 
@@ -18,7 +20,12 @@ Repository Settings > Secrets and variables > Actions에서 다음 secrets를 �
 
 - `TELEGRAM_BOT_TOKEN`: 텔레그램 봇 토큰
 - `TELEGRAM_CHAT_ID`: 텔레그램 채팅 ID  
-- `TARGET_URL`: 모니터링할 게시판 URL
+- `TARGET_URL`: 모니터링할 주택공고 URL (콤마로 구분하여 여러 개 설정 가능)
+
+#### TARGET_URL 설정 예시
+```
+https://example.com/board1,https://example.com/board2
+```
 
 ### 3. 텔레그램 봇 설정
 
@@ -45,8 +52,7 @@ cp .env.example .env
 ```env
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
 TELEGRAM_CHAT_ID=your_telegram_chat_id_here
-TARGET_URL=https://example.com/board
-DATA_FILE=data.json
+TARGET_URL=https://example.com/board1,https://example.com/board2
 ```
 
 ### 2. 로컬 실행
@@ -55,30 +61,44 @@ go mod download
 go run main.go
 ```
 
-## 설정 옵션
+## 알림 방식
 
-- `TARGET_URL`: 모니터링할 게시판 URL
-- `DATA_FILE`: 데이터 저장 파일 경로 (기본값: data.json)
+### 공고가 있는 경우
+- 최근 7일간의 모든 주택공고를 요약하여 전송
+- 각 공고마다 제목, 게시일, URL, 출처(LH/SH) 정보 포함
+- 최대 10개까지 표시하고 초과 시 개수 안내
+
+### 공고가 없는 경우  
+- "최근 7일간 새로운 공고가 없습니다" 알림 전송
+- 확인 완료 시간 포함
+
+## 지원 사이트
+
+- **LH 서울지역본부**: 공공분양/임대 공고
+- **SH 서울주택도시공사**: 공공분양/임대 공고
+
+각 사이트의 테이블 구조에 맞춰 최적화된 스크래핑 로직 적용
 
 ## 프로젝트 구조
 
 ```
 go-newPost/
-├── main.go              # 메인 애플리케이션
-├── config/              # 설정 관리
-│   └── config.go
-├── scraper/             # 웹 스크래핑
-│   └── scraper.go
-├── telegram/            # 텔레그램 봇
-│   └── bot.go
-├── storage/             # 데이터 저장
-│   └── storage.go
-├── .env.example         # 환경변수 예시
+├── main.go                    # 메인 애플리케이션 - 다중 URL 처리 및 통합 알림
+├── config/                    # 설정 관리
+│   └── config.go             # 환경변수 로드 및 다중 URL 파싱
+├── scraper/                   # 웹 스크래핑
+│   └── scraper.go            # LH/SH 사이트 특화 스크래핑 로직
+├── telegram/                  # 텔레그램 봇
+│   └── bot.go                # 요약 알림 및 에러 메시지 전송
+├── .env.example              # 환경변수 예시 (실제 서울 주택공고 URL 포함)
+├── .github/workflows/        # GitHub Actions 워크플로우
+│   └── monitor.yml          # 자동화 스케줄 설정
 └── README.md
 ```
 
 ## 주의사항
 
-- 모니터링 대상 사이트의 이용약관을 확인하세요
-- 너무 자주 요청하지 않도록 적절한 간격을 설정하세요
+- 서울시 주택공고 사이트 전용으로 제작되었습니다
+- 사이트의 이용약관을 준수하며 사용해주세요
 - 봇 토큰과 채팅 ID는 안전하게 관리하세요
+- 하루 한 번 실행으로 적절한 요청 간격을 유지합니다
