@@ -1,6 +1,7 @@
 package scraper
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"net/http"
 	"strings"
@@ -187,7 +188,8 @@ func getBaseURL(fullURL string) string {
 }
 
 func generateID(title, publishDate, source string) string {
-	return fmt.Sprintf("%x", title+publishDate+source)[:8]
+	sum := sha256.Sum256([]byte(title + publishDate + source))
+	return fmt.Sprintf("%x", sum)[:8]
 }
 
 func isValidDate(dateStr string) bool {
