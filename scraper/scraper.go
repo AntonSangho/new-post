@@ -147,25 +147,34 @@ func (s *Scraper) GetRecentPosts(days int) ([]Post, error) {
 
 	var recentPosts []Post
 	now := time.Now()
-	cutoffDate := now.AddDate(0, 0, -days)
 
 	for _, post := range posts {
-		postTime, err := time.Parse("2006-01-02", post.PublishDate)
-		if err != nil {
-			continue // 날짜 파싱 실패시 제외
+		if !isRecent(post.PublishDate, now, days) {
+			continue // 날짜 파싱 실패 또는 기간 밖
 		}
 
-		// 최근 N일 이내 공고만 포함
-		if postTime.After(cutoffDate) || postTime.Equal(cutoffDate.Truncate(24*time.Hour)) {
-			// 상태가 "공고중"인지 확인 (LH 사이트만)
-			if post.Status != "" && !isValidStatus(post.Status) {
-				continue
-			}
-			recentPosts = append(recentPosts, post)
+		// 상태가 "공고중"인지 확인 (LH 사이트만)
+		if post.Status != "" && !isValidStatus(post.Status) {
+			continue
 		}
+		recentPosts = append(recentPosts, post)
 	}
 
 	return recentPosts, nil
+}
+
+// kst는 공고 게시일(날짜만 있음)을 해석하는 기준 시간대다.
+var kst = time.FixedZone("KST", 9*60*60)
+
+// isRecent는 게시일(YYYY-MM-DD)이 KST 기준 오늘로부터 days일 전 날짜(포함) 이후인지 판단한다.
+func isRecent(publishDate string, now time.Time, days int) bool {
+	postDate, err := time.ParseInLocation("2006-01-02", publishDate, kst)
+	if err != nil {
+		return false
+	}
+	n := now.In(kst)
+	today := time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, kst)
+	return !postDate.Before(today.AddDate(0, 0, -days))
 }
 
 func isValidStatus(status string) bool {
